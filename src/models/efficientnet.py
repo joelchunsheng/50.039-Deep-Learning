@@ -9,11 +9,24 @@ _EFFICIENTNET_CONFIGS = {
 }
 
 
-def get_efficientnet(variant: str = 'b3', num_classes: int = 1, freeze_backbone: bool = False, dropout: float = 0.0):
+def get_efficientnet(variant: str = 'b3', num_classes: int = 1, freeze_backbone: bool = False, unfreeze_last_n_blocks: int = 0, dropout: float = 0.0):
+    """
+    unfreeze_last_n_blocks: if > 0, freeze entire backbone then unfreeze only the
+    last N children of model.features. model.features has 9 children:
+      [0] stem conv, [1-7] MBConv blocks, [8] head conv.
+    e.g. unfreeze_last_n_blocks=3 trains only MBConv block 6, block 7, and head conv.
+    If 0 (default), all backbone layers are trainable.
+    """
     model_fn, weights = _EFFICIENTNET_CONFIGS[variant]
     model = model_fn(weights=weights)
 
-    if freeze_backbone:
+    if unfreeze_last_n_blocks > 0:
+        for param in model.parameters():
+            param.requires_grad = False
+        for block in list(model.features)[-unfreeze_last_n_blocks:]:
+            for param in block.parameters():
+                param.requires_grad = True
+    elif freeze_backbone:
         for param in model.parameters():
             param.requires_grad = False
 
