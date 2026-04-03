@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 
 class BinaryFocalLoss(nn.Module):
@@ -38,3 +39,13 @@ class BinaryFocalLoss(nn.Module):
         elif self.reduction == 'sum':
             return loss.sum()
         return loss
+
+
+def l1_penalty(model: nn.Module) -> Tensor:
+    """Sum of absolute values of all trainable weights."""
+    return sum(p.abs().sum() for p in model.parameters() if p.requires_grad)
+
+
+def l2_penalty(model: nn.Module) -> Tensor:
+    """Sum of squared values of all trainable weights."""
+    return sum(p.pow(2).sum() for p in model.parameters() if p.requires_grad)
