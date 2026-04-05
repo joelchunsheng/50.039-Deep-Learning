@@ -1,4 +1,5 @@
 data/raw
+data_new/raw
 
 # macOS
 .DS_Store
