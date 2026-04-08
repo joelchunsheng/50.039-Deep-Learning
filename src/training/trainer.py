@@ -2,8 +2,10 @@ import torch
 from sklearn.metrics import recall_score, fbeta_score
 from tqdm import tqdm
 
+from .losses import l1_penalty, l2_penalty
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device):
+
+def train_one_epoch(model, dataloader, criterion, optimizer, device, l1_lambda=0.0, l2_lambda=0.0):
     model.train()
 
     running_loss = 0.0
@@ -20,12 +22,18 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         optimizer.zero_grad()
 
         outputs = model(images)
-        loss = criterion(outputs, labels)
+        loss = criterion(outputs, labels)  # BCE loss
+
+        running_loss += loss.item() * images.size(0)
+
+        if l1_lambda > 0:
+            loss = loss + l1_lambda * l1_penalty(model) 
+        if l2_lambda > 0:
+            loss = loss + l2_lambda * l2_penalty(model)
 
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item() * images.size(0)
 
         preds = (torch.sigmoid(outputs) >= 0.5).float()
         running_correct += (preds == labels).sum().item()
