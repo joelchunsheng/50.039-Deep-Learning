@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class SimpleCNN(nn.Module):
-    def __init__(self, num_classes: int = 1):
+    def __init__(self, num_classes: int = 1, dropout_rate: float = 0.5):
         super().__init__()
 
         self.features = nn.Sequential(
@@ -24,7 +24,7 @@ class SimpleCNN(nn.Module):
             nn.Flatten(),
             nn.Linear(128 * 28 * 28, 256),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(dropout_rate),
             nn.Linear(256, num_classes)
         )
 
