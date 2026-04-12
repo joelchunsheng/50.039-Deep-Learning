@@ -45,9 +45,13 @@ def plot_training_curves(train_history, val_history):
 
 
 @torch.no_grad()
-def get_predictions(model, dataloader, device, threshold=0.5):
+def get_predictions(model, dataloader, device, threshold=0.5, use_metadata=False):
     """
     Run model inference over a dataloader.
+
+    Args:
+        use_metadata: set True when the dataloader yields (image, metadata, label) triples
+                      and the model accepts (images, metadata) — e.g. ResNet50WithMetadata.
 
     Returns:
         labels: np.ndarray of ground-truth labels
@@ -59,9 +63,15 @@ def get_predictions(model, dataloader, device, threshold=0.5):
     all_labels = []
     all_probs  = []
 
-    for images, labels in dataloader:
+    for batch in dataloader:
+        if use_metadata:
+            images, metadata, labels = batch
+            metadata = metadata.to(device)
+        else:
+            images, labels = batch
+
         images = images.to(device)
-        outputs = model(images)
+        outputs = model(images, metadata) if use_metadata else model(images)
         probs = torch.sigmoid(outputs).squeeze(1)
         all_labels.extend(labels.numpy())
         all_probs.extend(probs.cpu().numpy())
@@ -73,7 +83,7 @@ def get_predictions(model, dataloader, device, threshold=0.5):
     return labels, probs, preds
 
 
-def find_best_threshold(model, val_loader, device):
+def find_best_threshold(model, val_loader, device, use_metadata=False):
     """
     Sweep thresholds 0.01–0.90 to find the value that maximises F2 on the
     validation set.
@@ -82,7 +92,7 @@ def find_best_threshold(model, val_loader, device):
         best_threshold: float
         best_f2:        float
     """
-    labels, probs, _ = get_predictions(model, val_loader, device, threshold=0.5)
+    labels, probs, _ = get_predictions(model, val_loader, device, threshold=0.5, use_metadata=use_metadata)
 
     thresholds = np.arange(0.01, 0.90, 0.01)
     f2_scores = [
@@ -98,18 +108,19 @@ def find_best_threshold(model, val_loader, device):
     return best_threshold, best_f2
 
 
-def evaluate_model(model, test_loader, device, threshold=0.5):
+def evaluate_model(model, test_loader, device, threshold=0.5, use_metadata=False):
     """
     Full evaluation on a test set: classification report, AUC-ROC, F2 score,
     and confusion matrix plot.
 
     Args:
-        model:       trained PyTorch model
-        test_loader: DataLoader for the test set
-        device:      torch.device
-        threshold:   decision threshold (use output of find_best_threshold)
+        model:        trained PyTorch model
+        test_loader:  DataLoader for the test set
+        device:       torch.device
+        threshold:    decision threshold (use output of find_best_threshold)
+        use_metadata: set True when using a metadata-fusion model
     """
-    labels, probs, preds = get_predictions(model, test_loader, device, threshold)
+    labels, probs, preds = get_predictions(model, test_loader, device, threshold, use_metadata=use_metadata)
 
     auc = roc_auc_score(labels, probs)
     bal_acc = balanced_accuracy_score(labels, preds)
