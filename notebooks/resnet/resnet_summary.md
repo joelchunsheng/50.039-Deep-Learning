@@ -56,6 +56,8 @@ After saving the best-AUC model, the threshold is tuned to maximise **F2 on the 
 | 02 | `02.resnet_unfreeze` | Full backbone | 11.2M | None | 0.6893 | 0.6280 | 0.7544 | 0.3761 | 0.8997 |
 | 03 | `03.resnet_augmented_v1` | Full backbone | 11.2M | Strong Aug + WD=1e-4 + Scheduler | 0.6680 | 0.6660 | **0.8304** | 0.3717 | 0.9068 |
 | 04 | `04.resnet_augmented_v2` | Full backbone | 11.2M | Dropout=0.4 + AdamW + TTA | 0.6835 | **0.6704** | 0.7778 | **0.4318** | **0.9133** |
+| 05 | `05.resnet_l1_dropout_tta` | Full backbone | 11.2M | L1 (λ=1e-3) + Dropout=0.4 + AdamW + TTA (25ep) | 0.6505 | 0.6507 | 0.7602 | 0.4127 | 0.9090 |
+| 06 | `06.resnet_metadata` | Full backbone | 11.2M | ResNet18WithMetadata + Metadata (dim=17) + L1 (λ=1e-3) + TTA | 0.6642 | 0.6442 | 0.7602 | 0.4000 | 0.9104 |
 
 ---
 
@@ -65,14 +67,18 @@ After saving the best-AUC model, the threshold is tuned to maximise **F2 on the 
 - **The Overfitting Challenge (02)**: Unfreezing the backbone without regularization increased recall but led to a drop in Test F2 and Precision, highlighting the model's tendency to memorize training samples in the absence of constraints.
 - **Impact of Augmentation (03)**: Introducing strong augmentation and a cosine scheduler significantly boosted melanoma recall to **0.8304**—the highest in this series—confirming that orientation-invariant transforms are crucial for skin lesion classification.
 - **Inference Stability (04)**: The combination of Dropout, AdamW, and Test-Time Augmentation (TTA) yielded the best discriminative performance (**AUC 0.9133**) and the highest overall Test F2 (**0.6704**). TTA successfully stabilized predictions, recovering precision lost in earlier iterations.
+- **L1 + Dropout (05)**: With proper deterministic seeding, L1 (λ=1e-3) + Dropout=0.4 + TTA achieved Test F2=0.6507 and AUC=0.9090 — an improvement over earlier estimates. Precision improved to 0.4127 compared to Iter 04, suggesting the L1 penalty helps calibrate confidence rather than hurting discrimination. However, Iter 04 still holds the best AUC (0.9133).
+- **Metadata Fusion (06)**: Adding patient metadata (age, sex, body localisation) via a 32-dim MLP encoder improved val F2 substantially (0.6505 → 0.6642) and nudged AUC to 0.9104. However, test F2 regressed slightly to 0.6442. The gap between val F2 (0.6642) and test F2 (0.6442) — wider than Iter 05 — suggests the metadata encoder overfit to val-set patient demographics. Note: Iter 06 was run with Dropout=0 (vs 0.4 in Iter 05), which likely contributed to the generalisation gap.
 
 ---
 
 ## Progression
 
 ```
-Test F2:  0.641 → 0.628 → 0.666 → 0.670
-AUC-ROC: 0.890 → 0.900 → 0.907 → 0.913
-              Iteration 04 (Dropout + AdamW + TTA) is the strongest ResNet-18 configuration.
+Test F2:  0.641 → 0.628 → 0.666 → 0.670 → 0.651 → 0.644
+AUC-ROC: 0.890 → 0.900 → 0.907 → 0.913 → 0.909 → 0.910
+              Iteration 04 (Dropout + AdamW + TTA) is the strongest ResNet-18 configuration by Test F2.
               Iteration 03 provides the highest sensitivity (Recall 0.83).
+              Iteration 06 (Metadata Fusion) improves AUC slightly but val→test F2 gap widens.
+              Metadata fusion with Dropout=0 overfits val demographics — re-run with Dropout=0.4 recommended.
 ```
