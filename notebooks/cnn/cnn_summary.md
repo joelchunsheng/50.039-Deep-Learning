@@ -33,7 +33,7 @@ All CNN experiments use:
 | # | Notebook | Architecture | Key Change | Test F2 | Test Recall | Test Precision | AUC-ROC |
 |---|---|---|---|---|---|---|---|
 | 01 | `01.cnn_baseline` | Simple CNN | No weighting, no BN | 0.5676 | 0.8246 | 0.2527 | 0.8449 |
-| 02 | `02.cnn_baseline_weighted` | Simple CNN | + pos_weight | 0.5781 | 0.7485 | 0.3026 | 0.8494 |
+| 02 | `02.cnn_baseline_weighted` | Simple CNN | + pos_weight | 0.5670 | **0.8713** | 0.2365 | 0.8471 |
 | 03 | `03.cnn_batchnorm_weighted` | CNN + BatchNorm | + BatchNorm | **0.5900** | 0.7895 | 0.2935 | 0.8520 |
 | 04 | `04.cnn_deeper_batchnorm_weighted` | Deeper CNN + BN | + depth | 0.5525 | 0.7076 | 0.2944 | 0.8538 |
 | 05 | `05.cnn_residual_batchnorm_weighted` | Residual CNN | + skip connections | 0.5814 | **0.8187** | 0.2692 | **0.8672** |
@@ -42,12 +42,14 @@ All CNN experiments use:
 
 ## Key Findings
 
-### 1. Class imbalance handling is critical (01 → 02)
+### 1. Class imbalance handling mainly shifts the operating point (01 → 02)
 
-- Introducing `pos_weight` significantly improves:
-  - Recall (melanoma detection)
-  - F2 score
-- This is the **largest performance gain step**
+- Introducing `pos_weight` makes the baseline much more recall-focused:
+  - Recall improves from 0.8246 to **0.8713**
+- But the trade-off is weaker precision and almost no F2 gain:
+  - Precision drops from 0.2527 to 0.2365
+  - F2 is essentially flat (0.5676 → 0.5670)
+- Weighting helps screening sensitivity, but not overall balance by itself
 
 ---
 
@@ -55,6 +57,7 @@ All CNN experiments use:
 
 - More stable training
 - Better generalisation
+- Better precision-recall balance than the rerun weighted baseline
 - Leads to **best F2 score (0.5900)**
 
 ---
@@ -92,8 +95,8 @@ However:
 
 ## Progression
 
-AUC-ROC: 0.8449 → 0.8494 → 0.8520 → 0.8538 → 0.8672  
-F2 Score: 0.5676 → 0.5781 → 0.5900 → 0.5525 → 0.5814  
+AUC-ROC: 0.8449 → 0.8471 → 0.8520 → 0.8538 → 0.8672  
+F2 Score: 0.5676 → 0.5670 → 0.5900 → 0.5525 → 0.5814  
 
 ---
 
