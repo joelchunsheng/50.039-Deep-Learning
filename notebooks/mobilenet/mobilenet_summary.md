@@ -59,28 +59,30 @@ All experiments use:
 
 ## Results Summary
 
-| # | Notebook | Unfrozen | Trainable Params | Regularisation | Best Val F2 | Test F2 | Test Recall | Test Precision | AUC-ROC |
-|---|---|---|---|---|---|---|---|---|---|
-| 01 | `01.mobilenet_v3_metadata_tta` | Full backbone | ~3M | L1+L2 (λ=1e-3) + Dropout=0.5 + Metadata + TTA (8×) | 0.6802 | 0.6492 | 0.8421 | 0.3388 | 0.9114 |
+| # | Notebook | Config | Best Val F2 | Test F2 | Test Recall | Test Precision | AUC-ROC |
+|---|---|---|---|---|---|---|---|
+| 01 | `01.mobilenet_v3_metadata_tta` | Full backbone, L1+L2 (λ=1e-3), Dropout=0.5, Metadata, TTA (8×) | 0.6802 | 0.6492 | 0.8421 | 0.3388 | 0.9114 |
+| 02 | `02.mobilenet_v3_efficientnet_b0_ensemble` | Ensemble (MobileNetV3-Large Iter 01 + EfficientNet-B0 Iter 06), mean TTA probs (8×) | 0.7023 | 0.6781 | 0.8772 | 0.3555 | 0.9235 |
 
 ---
 
 ## Key Findings
 
 - **Below benchmark (01)**: MobileNetV3-Large with full unfreezing, dual regularisation (L1+L2=1e-3), metadata fusion, and 8× TTA achieved Test F2 0.6492 — below both the 0.6879 benchmark and EfficientNet-B0's best of 0.6952. AUC-ROC (0.9114) also trails EfficientNet-B0 Iter 05 (0.9199).
-- **Persistent overfitting**: Despite L1+L2 regularisation, training AUC continued climbing to 0.9556 by epoch 30 while val AUC plateaued at ~0.915 after the best checkpoint at epoch 16. The early best checkpoint (ep16/30) suggests the model is still memorising rather than generalising — stronger dropout or partial unfreezing may be needed.
-- **Val→Test generalisation gap**: Val F2 (TTA) was 0.6802 but Test F2 dropped to 0.6492, a gap of 0.031. This is larger than EfficientNet-B0's gap (~0.001 for Iter 06), pointing to weaker generalisation — likely because MobileNetV3-Large's backbone was trained with a very different inductive bias (efficiency-focused depthwise separable convolutions + SE blocks) that may be less suited to dermoscopic textures than EfficientNet.
-- **Smaller backbone than expected**: The ~3M trainable params reflect only the `features` + `avgpool` portion of the model — the original MobileNetV3-Large classifier (Linear(960→1280→1000), ~2.5M params) was discarded. Including the pre-classifier expansion layer before fusion could provide a richer 1280-dim image embedding and may close the gap with EfficientNet-B0.
+- **Persistent overfitting (01)**: Despite L1+L2 regularisation, training AUC continued climbing to 0.9556 by epoch 30 while val AUC plateaued at ~0.915 after the best checkpoint at epoch 16. The early best checkpoint (ep16/30) suggests the model is still memorising rather than generalising — stronger dropout or partial unfreezing may be needed.
+- **Val→Test generalisation gap (01)**: Val F2 (TTA) was 0.6802 but Test F2 dropped to 0.6492, a gap of 0.031. This is larger than EfficientNet-B0's gap (~0.001 for Iter 06), pointing to weaker generalisation — likely because MobileNetV3-Large's backbone was trained with a very different inductive bias (efficiency-focused depthwise separable convolutions + SE blocks) that may be less suited to dermoscopic textures than EfficientNet.
+- **Smaller backbone than expected (01)**: The ~3M trainable params reflect only the `features` + `avgpool` portion of the model — the original MobileNetV3-Large classifier (Linear(960→1280→1000), ~2.5M params) was discarded. Including the pre-classifier expansion layer before fusion could provide a richer 1280-dim image embedding and may close the gap with EfficientNet-B0.
+- **Ensemble beats AUC but not Test F2 (02)**: Mean-averaging TTA probabilities from MobileNetV3-Large and EfficientNet-B0 raised AUC-ROC to 0.9235 (vs. 0.9182 for EfficientNet-B0 alone) and Val F2 to 0.7023, but Test F2 of 0.6781 falls short of EfficientNet-B0's standalone 0.6952. The ensemble generalises better in AUC but the MobileNet component pulls down Test F2 — its weaker individual performance (0.6492) drags the averaged probabilities away from the optimal threshold, reducing precision without a compensating recall gain.
 
 ---
 
 ## Progression
 
 ```
-Test F2:  0.649
-AUC-ROC: 0.911
+Test F2:  0.649 → 0.678
+AUC-ROC: 0.911 → 0.924
 
-  MobileNetV3-Large Iter 01 does not beat the benchmark (0.6879) or EfficientNet-B0 TTA (0.6952).
-  Overfitting persists despite L1+L2 dual regularisation.
-  Conclusion: EfficientNet-B0 remains the stronger architecture for this task.
+  Iter 01: MobileNetV3-Large alone does not beat the benchmark (0.6879) or EfficientNet-B0 TTA (0.6952).
+  Iter 02: Ensemble improves AUC (0.9235) and Val F2 (0.7023) but Test F2 (0.6781) still trails
+           EfficientNet-B0 standalone (0.6952). Weaker MobileNet component limits Test F2 gains.
 ```

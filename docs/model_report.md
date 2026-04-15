@@ -27,6 +27,9 @@ The ResNet-18 series focuses on adapting a lightweight residual network to dermo
 - **L1 + Dropout (05)**: L1 regularization encourages sparsity, pressuring the model to rely on a smaller, more robust set of features. However, combining L1 with Dropout proved too aggressive — both Test F2 (0.6507 vs 0.6704) and precision (0.4127 vs 0.4318) regressed compared to Iteration 04, suggesting the dual regularization overly constrained the model's capacity.
 - **Metadata Fusion (06)**: Adding patient context (age, sex) improved validation performance but regressed on the test set. The metadata fusion increased model complexity without a corresponding adjustment to regularization, and the relatively small metadata feature space (17-dim) may not have provided enough discriminative signal to justify the additional parameters in the fusion head.
 
+### Cross-Architecture Context
+ResNet-18 sets the project baseline as the simplest architecture. Its best model (Iter 04, AUC=0.9133, F2=0.6704) outperforms every ResNet-50 variant despite having fewer parameters. This foreshadows a recurring theme: on a small, imbalanced dataset like HAM10000, **parameter efficiency matters more than raw capacity**. The lightweight 11.2M-parameter backbone was easier to regularize and less prone to overfitting, making it a stronger starting point than the deeper ResNet-50.
+
 ---
 
 ## 2. ResNet-50 Experiments (`notebooks/resnet50/`)
@@ -53,6 +56,9 @@ ResNet-50 utilizes a deeper bottleneck architecture. The `ResNet50WithMetadata` 
 - **L1+L2 Penalties (05)**: This was the breakthrough for ResNet-50. Explicit L1 and L2 penalties act as a much harsher constraint than standard WD, forcing the model to find a simpler, more general solution. This yielded the best Test F2 (**0.6184**).
 - **L1 only, no Dropout (07)**: Without Dropout, the model retained more effective capacity during training, while L1 acted as a feature selector to enforce sparsity. This combination allowed the model to learn stronger discriminative features (highest AUC at **0.8861**) while being more aggressive in positive predictions (highest recall at 0.8070, but lower precision). The result confirms that for ResNet-50, a single well-chosen regularizer outperforms stacking multiple weaker ones.
 - **Metadata (08)**: Metadata improved precision but decreased recall. The additional metadata parameters shifted the model toward more conservative predictions — fewer positive calls, but more of them correct. The regularization hyperparameters (tuned for image-only models) were not re-optimized for the larger fusion architecture, likely limiting the metadata branch's contribution.
+
+### Cross-Architecture Context
+ResNet-50 consistently underperformed ResNet-18 across comparable configurations (best F2: 0.6184 vs 0.6704, best AUC: 0.8861 vs 0.9133). The deeper bottleneck architecture introduces ~15M trainable parameters in `layer4` alone, but HAM10000's limited size (~10K images) cannot support this capacity without heavy regularization. Even with L1+L2+Dropout stacking, ResNet-50 could not close the gap. This demonstrates that for small medical datasets, **scaling depth is counterproductive** — the additional representational power is wasted on memorizing training noise rather than learning generalizable lesion features. The move to EfficientNet was motivated by this observation: the project needed architectures that scale *smarter*, not just deeper.
 
 ---
 
@@ -82,6 +88,9 @@ EfficientNet variants (B0, B3, B4) were evaluated. The `EfficientNetB0WithMetada
 - **Label Smoothing & Focal Loss (07, 08)**: These regressions taught a valuable lesson. Label smoothing "softened" the signal too much for a binary problem, diluting the already sparse melanoma supervision. Focal Loss (γ=2.0, α=0.75) was too aggressive for this dataset's class distribution — the high γ excessively downweighted easy examples, destabilizing gradient magnitudes and preventing stable convergence. The hyperparameters (γ and α) were not tuned for the specific imbalance ratio, leading to worse calibration than standard BCE with pos_weight.
 - **EfficientNet-B4 (09, 10)**: Scaling up to B4 at 380px resolution underperformed B0. The intuition is **over-regularization**: the L1 penalty (1e-3) used for B0 (4M params) was too heavy for B4 (17.5M params), causing the model to underfit. Train AUC stayed below Val AUC throughout, a clear sign the model was too constrained to learn.
 
+### Cross-Architecture Context
+EfficientNet-B0 represents a significant leap over both ResNet variants. Its best model (Iter 06, AUC=0.9182, F2=0.6952) surpasses the best ResNet-18 (AUC=0.9133, F2=0.6704) by a clear margin, despite having fewer trainable parameters (~4M in the unfrozen blocks vs 11.2M). This confirms that **architecture design matters more than scale**: Compound Scaling and SE attention extract more from the same data budget than simply stacking residual blocks. Notably, the B0→B4 scaling within EfficientNet echoed the ResNet-18→ResNet-50 lesson — increasing model size without retuning regularization leads to regression, not improvement. The consistent pattern across both architecture families reinforces that HAM10000's size is the binding constraint, and gains must come from smarter training strategies (metadata, TTA) rather than larger models.
+
 ---
 
 ## 4. MobileNet Experiments (`notebooks/mobilenet/`)
@@ -98,6 +107,9 @@ MobileNetV3-Large utilizes inverted residual blocks and Squeeze-and-Excitation.
 ### Iteration Intuition & Reasoning
 - **MobileNet Performance (01)**: MobileNetV3-Large achieved strong results but trailed EfficientNet-B0. While both architectures use depthwise separable convolutions, EfficientNet benefits from Compound Scaling (jointly optimizing depth, width, and resolution) and SE blocks, giving it richer feature representations. MobileNetV3's architecture prioritizes inference speed over representation capacity, which explains the performance gap on fine-grained medical classification.
 - **Ensemble (02)**: The ensemble achieved the project's highest AUC (**0.9235**). The reasoning is "error decorrelation": since MobileNet and EfficientNet have different inductive biases, they tend to make different mistakes. Averaging their predictions cancels out these individual errors, raising the discriminative ceiling of the entire system.
+
+### Cross-Architecture Context
+MobileNetV3 as a standalone model (AUC=0.9114, F2=0.6492) slots between the ResNets and EfficientNet-B0, consistent with its design as a speed-optimized architecture. However, its real value emerged through ensembling: the MobileNet+EfficientNet ensemble achieved the project's highest AUC (0.9235), surpassing EfficientNet-B0 alone (0.9199). This demonstrates that **architectural diversity is itself a resource** — two mid-tier models with different inductive biases can outperform a single stronger model. The ensemble also validates the overall project trajectory: rather than continuing to scale individual models (which hit diminishing returns at B4/ResNet-50), combining complementary architectures proved to be the most effective path to improving discriminative performance.
 
 ---
 
