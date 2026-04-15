@@ -196,59 +196,8 @@ def render_missing_artifact(message: str) -> None:
 
 
 def render_prediction_result(prediction: dict) -> None:
-    render_metric_card("Predicted Label", prediction["predicted_label"])
-    render_metric_card("Confidence", f'{prediction["confidence"] * 100:.2f}%')
-
-    probability_df = pd.DataFrame(
-        {
-            "Class": ["Nevus", "Melanoma"],
-            "Probability": [prediction["nevus_probability"], prediction["melanoma_probability"]],
-        }
-    )
-    fig = px.bar(
-        probability_df,
-        x="Class",
-        y="Probability",
-        color="Class",
-        text="Probability",
-        color_discrete_sequence=["#2d6a8e", "#d1495b"],
-    )
-    fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-    fig.update_yaxes(range=[0, 1])
-    fig.update_layout(
-        height=320,
-        margin=dict(l=20, r=20, t=20, b=20),
-        showlegend=False,
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-    )
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-
-
-def render_interpretation_box(prediction: dict) -> None:
-    if prediction["predicted_index"] == 1:
-        interpretation = (
-            "The selected model assigned a higher probability to the melanoma class. "
-            "For a presentation demo, you can describe this as the model detecting stronger malignant-like visual patterns."
-        )
-    else:
-        interpretation = (
-            "The selected model assigned a higher probability to the nevus class. "
-            "For a presentation demo, you can describe this as the model finding features more consistent with a benign lesion."
-        )
-
-    st.markdown(
-        f"""
-        <div class="interpret-box">
-            <strong>Interpretation</strong><br /><br />
-            {interpretation}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_disclaimer() -> None:
-    st.warning(
-        "This application is for educational demonstration only and must not be used as a real medical diagnosis tool."
+    render_metric_card(
+        "Prediction",
+        prediction["predicted_label"],
+        f'Confidence: {prediction["confidence"] * 100:.2f}%',
     )

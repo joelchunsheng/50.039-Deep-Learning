@@ -8,6 +8,8 @@ from app_src.config import (
     DATASET_STATS,
     DENSENET_TABLE,
     EFFICIENTNET_TABLE,
+    METADATA_LOCALIZATION_OPTIONS,
+    METADATA_SEX_OPTIONS,
     MOBILENET_TABLE,
     MODEL_RESULTS,
     PROJECT_INFO,
@@ -26,9 +28,7 @@ from app_src.ui_components import (
     plot_confusion_matrix,
     plot_training_curves,
     render_dataset_summary,
-    render_disclaimer,
     render_header,
-    render_interpretation_box,
     render_metric_card,
     render_missing_artifact,
     render_prediction_result,
@@ -222,8 +222,11 @@ def render_prediction_tab() -> None:
             type=["jpg", "jpeg", "png"],
             help="Supported formats: JPG, JPEG, PNG",
         )
+        st.markdown("#### Patient Metadata")
+        age = st.number_input("Age", min_value=0, max_value=120, value=52, step=1)
+        sex = st.selectbox("Sex", options=METADATA_SEX_OPTIONS, index=2)
+        localization = st.selectbox("Lesion Location", options=METADATA_LOCALIZATION_OPTIONS, index=8)
         run_prediction = st.button("Run Prediction", type="primary", width="stretch")
-        render_disclaimer()
 
     with right_col:
         st.markdown("### Prediction Output")
@@ -236,10 +239,9 @@ def render_prediction_tab() -> None:
             st.error("The uploaded file could not be read as an image. Please try another file.")
             return
 
-        st.image(image, caption="Uploaded Image", width="stretch")
+        st.image(image, caption="Uploaded Image", width=320)
 
         if not run_prediction:
-            st.info("Select a model and click `Run Prediction` when you're ready.")
             return
 
         with st.spinner("Loading model and running inference..."):
@@ -248,7 +250,12 @@ def render_prediction_tab() -> None:
                 st.error(load_message)
                 return
 
-            prediction = predict_image(model, image, device, selected_model)
+            metadata_input = {
+                "age": age,
+                "sex": sex,
+                "localization": localization,
+            }
+            prediction = predict_image(model, image, device, selected_model, metadata_input=metadata_input)
             if prediction["status"] != "success":
                 st.error(prediction["message"])
                 return
@@ -256,8 +263,6 @@ def render_prediction_tab() -> None:
         result_cols = st.columns(2, gap="large")
         with result_cols[0]:
             render_prediction_result(prediction)
-        with result_cols[1]:
-            render_interpretation_box(prediction)
 
 
 def main() -> None:

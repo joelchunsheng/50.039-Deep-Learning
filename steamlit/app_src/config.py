@@ -499,9 +499,30 @@ MODEL_RESULTS = [
     {
         "key": "mobileNet",
         "display_name": "Model 6 - MobileNet",
-        "file_path": str(MODELS_DIR / "efficientnet_b0" / "model.pth"),
-        "checkpoint_type": "full_model",
-        "summary": "Ensemble (MBV3 + EffB0)",
+        "checkpoint_type": "ensemble_state_dict",
+        "summary": "Ensemble (MobileNetV3-Large + EfficientNet-B0 with metadata)",
+        "decision_threshold": 0.50,
+        "use_tta": True,
+        "component_configs": [
+            {
+                "name": "efficientnet_b0",
+                "architecture": "efficientnet_b0_with_metadata",
+                "file_path": str(MODELS_DIR / "mobilenet" / "efficientnet_b0_l1_metadata_best.pth"),
+                "metadata_dim": 17,
+                "num_classes": 1,
+                "freeze_backbone": True,
+                "dropout": 0.5,
+            },
+            {
+                "name": "mobilenet_v3_large",
+                "architecture": "mobilenet_v3_large_with_metadata",
+                "file_path": str(MODELS_DIR / "mobilenet" / "01.mobilenet_v3_metadata_best.pth"),
+                "metadata_dim": 17,
+                "num_classes": 1,
+                "freeze_backbone": False,
+                "dropout": 0.5,
+            },
+        ],
         "is_best": True,
         "metrics": {
             "val_f2": 0.7023,
@@ -525,3 +546,22 @@ MODEL_RESULTS = [
 CLASS_LABELS = {0: "Nevus", 1: "Melanoma"}
 INPUT_SIZE = (224, 224)
 ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
+
+METADATA_SEX_OPTIONS = ["male", "female", "unknown"]
+METADATA_LOCALIZATION_OPTIONS = [
+    "back",
+    "lower extremity",
+    "trunk",
+    "upper extremity",
+    "abdomen",
+    "face",
+    "chest",
+    "foot",
+    "unknown",
+    "neck",
+    "scalp",
+    "hand",
+    "ear",
+    "genital",
+    "acral",
+]
