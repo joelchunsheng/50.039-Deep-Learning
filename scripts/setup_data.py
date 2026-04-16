@@ -34,6 +34,14 @@ def main():
     print("Running split script...")
     run_command("python -m scripts.split_dataset")
 
+    # Step 3: Preprocess images (resize to 224x224)
+    print("Running image preprocessing script...")
+    run_command("python -m scripts.preprocess_images")
+
+    #Step 4: Remove missing image from splits
+    print("Running filter script to remove missing image from splits...")
+    run_command("python -m scripts.filter_dataset")
+    
     print("Dataset setup complete.")
     print("Splits written to data_new/splits/")
 
