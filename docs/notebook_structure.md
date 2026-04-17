@@ -1,6 +1,6 @@
 # Notebook Structure Guideline
 
-This document defines the standard structure for all experiment notebooks in this project. Every new notebook **must** follow this layout exactly to keep experiments comparable and easy to read.
+This document defines the standard structure for all experiment notebooks in this project. Every new notebook **must** follow this layout exactly to keep experiments comparable and easy to read, unless intended otherwise, (such as TTA or ensemble notebooks).
 
 ---
 
