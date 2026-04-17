@@ -126,11 +126,19 @@ python -m scripts.split_dataset
 python -m scripts.preprocess_images
 ```
 
-### 4. Recreate the best models
+### 4. Load or Recreate the best models
 
-To train the two model checkpoints from scratch and reproduce the ensemble result (AUC 0.9235), follow the step-by-step guide in [`docs/recreate_best_models.md`](docs/recreate_best_models.md).
+**4.1 Load and analyse the best model**
 
-For results, analysis, and iteration reasoning across all architecture families (CNN, DenseNet, ResNet-18, ResNet-50, ViT, EfficientNet, MobileNet), see [`docs/model_report.md`](docs/model_report.md), or our report for further details.
+Open [`notebooks/Group16.ipynb`](notebooks/Group16.ipynb) to load the two pre-trained checkpoints from `models/`, run the ensemble TTA pipeline, and evaluate on the test set — no retraining required.
+
+**4.2 Recreate from scratch**
+
+To retrain the two model checkpoints and reproduce the ensemble result (AUC 0.9235), follow the step-by-step guide in [`docs/recreate_best_models.md`](docs/recreate_best_models.md).
+
+**4.3 Results and architecture analysis**
+
+For results, analysis, and iteration reasoning across all architecture families (CNN, DenseNet, ResNet-18, ResNet-50, ViT, EfficientNet, MobileNet), see [`docs/model_report.md`](docs/model_report.md).
 
 ### 5. Run the Streamlit app
 
